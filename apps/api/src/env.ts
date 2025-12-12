@@ -17,6 +17,8 @@ export const env = createEnv({
     QUEUE_PREFIX: z.string().min(1).default("csa"),
     INGESTION_CONCURRENCY: z.coerce.number().int().positive().default(3),
     DELETION_CONCURRENCY: z.coerce.number().int().positive().default(2),
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().default("http://localhost:4318"),
+    OTEL_SERVICE_NAME: z.string().min(1).default("customer-support-api"),
   },
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
@@ -32,6 +34,8 @@ export const env = createEnv({
     QUEUE_PREFIX: process.env.QUEUE_PREFIX,
     INGESTION_CONCURRENCY: process.env.INGESTION_CONCURRENCY,
     DELETION_CONCURRENCY: process.env.DELETION_CONCURRENCY,
+    OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    OTEL_SERVICE_NAME: process.env.OTEL_SERVICE_NAME,
   },
   emptyStringAsUndefined: true,
 });
