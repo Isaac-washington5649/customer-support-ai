@@ -1,5 +1,5 @@
 import type { ResolvedAgentProfile } from "./agents";
-import { AgentRegistry } from "./agents";
+import type { AgentRegistry } from "./agents";
 import type { RetrievedContext } from "./context";
 import type { AgentRoutingRequest, ChatMessage, RoutedAgentPrompt } from "./messages";
 
@@ -38,7 +38,11 @@ const buildContextMessages = (contexts?: RetrievedContext[]): ChatMessage[] => {
 };
 
 export class AgentRouter {
-  constructor(private readonly registry: AgentRegistry) {}
+  private readonly registry: AgentRegistry;
+
+  constructor(registry: AgentRegistry) {
+    this.registry = registry;
+  }
 
   route(request: AgentRoutingRequest): { profile: ResolvedAgentProfile; prompt: RoutedAgentPrompt } {
     const profile = this.registry.resolve(request.mode, request.tenantId);
