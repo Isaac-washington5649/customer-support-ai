@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@customer-support-ai/ui";
 
@@ -530,6 +531,12 @@ export default function Home() {
             <Button variant="secondary" aria-label="Export text" onClick={() => handleExport("txt")}>
               Export .txt
             </Button>
+            <Link
+              href="/usage"
+              className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 hover:border-blue-300 hover:text-blue-700 dark:border-gray-800 dark:text-gray-100"
+            >
+              Model costs
+            </Link>
             <Button aria-label="Start knowledge search" onClick={() => handleToolCall("knowledge")}>Knowledge search</Button>
           </div>
         </header>
