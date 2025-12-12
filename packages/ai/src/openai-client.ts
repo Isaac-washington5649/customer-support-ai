@@ -1,18 +1,19 @@
+/* eslint-disable no-unused-vars */
 import type { PromptContext, ToolCallPreparation } from "./context";
 import type { ChatMessage } from "./messages";
 
 export interface Logger {
-  debug?: (message: string, metadata?: Record<string, unknown>) => void;
-  info?: (message: string, metadata?: Record<string, unknown>) => void;
-  error?: (message: string, metadata?: Record<string, unknown>) => void;
+  debug?: (...args: [message: string, metadata?: Record<string, unknown>]) => void;
+  info?: (...args: [message: string, metadata?: Record<string, unknown>]) => void;
+  error?: (...args: [message: string, metadata?: Record<string, unknown>]) => void;
 }
 
 export interface TraceSpan {
-  end: (error?: unknown) => void;
+  end: (...args: [error?: unknown]) => void;
 }
 
 export interface Tracer {
-  startSpan: (name: string, attributes?: Record<string, unknown>) => TraceSpan;
+  startSpan: (...args: [name: string, attributes?: Record<string, unknown>]) => TraceSpan;
 }
 
 export interface OpenAIClientConfig {
