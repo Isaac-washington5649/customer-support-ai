@@ -52,6 +52,11 @@ export interface StreamingChatChunk {
   finishReason?: string | null;
 }
 
+export interface StreamingChatCompletion {
+  stream: AsyncGenerator<StreamingChatChunk, void, unknown>;
+  finalMessage: Promise<ChatCompletionResponse>;
+}
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class OpenAIChatClient {
@@ -67,7 +72,7 @@ export class OpenAIChatClient {
 
   async createChatCompletion(
     request: ChatCompletionRequest,
-  ): Promise<ChatCompletionResponse | AsyncGenerator<StreamingChatChunk, void, unknown>> {
+  ): Promise<ChatCompletionResponse | StreamingChatCompletion> {
     if (request.stream) {
       return this.streamChatCompletion(request);
     }
@@ -97,7 +102,7 @@ export class OpenAIChatClient {
     };
   }
 
-  private async *streamChatCompletion(request: ChatCompletionRequest): AsyncGenerator<StreamingChatChunk, void, unknown> {
+  private streamChatCompletion(request: ChatCompletionRequest): StreamingChatCompletion {
     const response = await this.executeWithRetry(request, true);
     const reader = response.body?.getReader();
 
@@ -107,40 +112,72 @@ export class OpenAIChatClient {
 
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
+    let content = "";
+    let finishReason: string | undefined;
+    let model = request.model ?? this.config.model;
+    let created = Math.floor(Date.now() / 1000);
+    let id = `stream-${Date.now()}`;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    let resolveFinal!: (value: ChatCompletionResponse) => void;
+    const finalMessage = new Promise<ChatCompletionResponse>((resolve) => {
+      resolveFinal = resolve;
+    });
 
-      buffer += decoder.decode(value, { stream: true });
-      const events = buffer.split("\n\n");
-      buffer = events.pop() ?? "";
+    const stream = (async function* (this: OpenAIChatClient) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      for (const event of events) {
-        const line = event.trim();
-        if (!line.startsWith("data:")) continue;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
 
-        const data = line.replace(/^data:\s*/, "");
-        if (data === "[DONE]") {
-          return;
+        for (const event of events) {
+          const line = event.trim();
+          if (!line.startsWith("data:")) continue;
+
+          const data = line.replace(/^data:\s*/, "");
+          if (data === "[DONE]") {
+            break;
+          }
+
+          let parsed: any;
+          try {
+            parsed = JSON.parse(data);
+          } catch (error) {
+            this.config.logger?.error?.("openai.stream.parse_error", { error });
+            continue;
+          }
+
+          const [choice] = parsed.choices ?? [];
+          const delta = choice?.delta?.content ?? "";
+          if (delta) {
+            content += delta;
+          }
+
+          id = parsed.id ?? id;
+          model = parsed.model ?? model;
+          created = parsed.created ?? created;
+          finishReason = choice?.finish_reason ?? undefined;
+
+          yield {
+            delta,
+            raw: parsed,
+            finishReason: choice?.finish_reason ?? null,
+          } satisfies StreamingChatChunk;
         }
-
-        let parsed: any;
-        try {
-          parsed = JSON.parse(data);
-        } catch (error) {
-          this.config.logger?.error?.("openai.stream.parse_error", { error });
-          continue;
-        }
-
-        const [choice] = parsed.choices ?? [];
-        yield {
-          delta: choice?.delta?.content ?? "",
-          raw: parsed,
-          finishReason: choice?.finish_reason ?? null,
-        } satisfies StreamingChatChunk;
       }
-    }
+
+      resolveFinal({
+        id,
+        created,
+        model,
+        finishReason,
+        message: { role: "assistant", content },
+      });
+    }).bind(this)();
+
+    return { stream, finalMessage } satisfies StreamingChatCompletion;
   }
 
   private async executeWithRetry(request: ChatCompletionRequest, stream: boolean): Promise<Response> {

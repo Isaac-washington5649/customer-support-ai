@@ -7,6 +7,9 @@ export interface AgentProfile {
   systemPrompt: string;
   guardrails: string[];
   defaultTools?: string[];
+  model: string;
+  maxOutputTokens: number;
+  temperature?: number;
 }
 
 export interface TenantAgentOverrides {
@@ -14,6 +17,9 @@ export interface TenantAgentOverrides {
   persona?: string;
   guardrails?: string[];
   additionalInstructions?: string;
+  model?: string;
+  maxOutputTokens?: number;
+  temperature?: number;
 }
 
 export interface TenantScopedOverrides {
@@ -43,6 +49,9 @@ export const DEFAULT_AGENT_PROFILES: Record<AgentMode, AgentProfile> = {
       "You are a frontline support assistant for a SaaS product. Provide concise answers and anticipate follow-up questions.",
     guardrails: baseGuardrails,
     defaultTools: ["search_kb", "create_ticket"],
+    model: "gpt-4o-mini",
+    maxOutputTokens: 800,
+    temperature: 0.3,
   },
   coach: {
     mode: "coach",
@@ -53,6 +62,9 @@ export const DEFAULT_AGENT_PROFILES: Record<AgentMode, AgentProfile> = {
       "You help users adopt the product effectively. Offer step-by-step guidance, best practices, and proactive suggestions.",
     guardrails: baseGuardrails,
     defaultTools: ["send_nps", "schedule_checkin"],
+    model: "gpt-4o-mini",
+    maxOutputTokens: 600,
+    temperature: 0.5,
   },
   critic: {
     mode: "critic",
@@ -63,6 +75,9 @@ export const DEFAULT_AGENT_PROFILES: Record<AgentMode, AgentProfile> = {
       "You review draft responses for clarity, accuracy, and safety. Suggest concrete edits and cite policies when relevant.",
     guardrails: baseGuardrails,
     defaultTools: ["policy_lookup"],
+    model: "gpt-4o-mini",
+    maxOutputTokens: 400,
+    temperature: 0.2,
   },
   researcher: {
     mode: "researcher",
@@ -73,6 +88,9 @@ export const DEFAULT_AGENT_PROFILES: Record<AgentMode, AgentProfile> = {
       "You gather and summarize information from knowledge bases and changelogs. Present findings with citations and next steps.",
     guardrails: baseGuardrails,
     defaultTools: ["search_kb", "search_release_notes"],
+    model: "gpt-4o-mini",
+    maxOutputTokens: 900,
+    temperature: 0.4,
   },
 };
 
@@ -105,6 +123,9 @@ export class AgentRegistry {
       guardrails: overrides?.guardrails ?? baseProfile.guardrails,
       persona: overrides?.persona ?? baseProfile.persona,
       additionalInstructions: overrides?.additionalInstructions,
+      model: overrides?.model ?? baseProfile.model,
+      maxOutputTokens: overrides?.maxOutputTokens ?? baseProfile.maxOutputTokens,
+      temperature: overrides?.temperature ?? baseProfile.temperature,
     };
   }
 }

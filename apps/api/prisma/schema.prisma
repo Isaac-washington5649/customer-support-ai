@@ -34,6 +34,14 @@ enum DocumentStatus {
   ARCHIVED
 }
 
+enum UploadSessionStatus {
+  PENDING
+  UPLOADING
+  COMPLETED
+  FAILED
+  ABORTED
+}
+
 enum MessageRole {
   user
   assistant
@@ -134,12 +142,46 @@ model Chunk {
   embedding  Unsupported("vector")
   searchVector Unsupported("tsvector")?
   metadata   Json?
+  contentHash String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   document Document @relation(fields: [documentId], references: [id])
 
   @@index([documentId])
+  @@index([contentHash])
+}
+
+model UploadSession {
+  id          String              @id @default(cuid())
+  workspaceId String
+  uploadId    String
+  objectKey   String
+  bucket      String
+  mimeType    String?
+  partSize    Int
+  size        BigInt?
+  checksum    String?
+  status      UploadSessionStatus @default(PENDING)
+  parts       Json?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@unique([workspaceId, objectKey])
+}
+
+model EmbeddingCache {
+  id         String   @id @default(cuid())
+  hash       String   @unique
+  model      String
+  tokenCount Int
+  dimensions Int
+  embedding  Unsupported("vector")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model ChatSession {
