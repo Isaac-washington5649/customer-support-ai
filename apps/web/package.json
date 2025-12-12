@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@customer-support-ai/ui": "workspace:*",
+    "@customer-support-ai/ui": "file:../../packages/ui",
     "@t3-oss/env-nextjs": "^0.11.1",
     "dotenv": "^16.4.7",
     "next": "16.0.10",

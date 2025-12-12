@@ -4,40 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@customer-support-ai/ui";
 
 import { env } from "@/env";
-
-type ToolCallKind = "knowledge" | "file" | "task";
-
-type ToolCall = {
-  id: string;
-  type: ToolCallKind;
-  request: string;
-  response?: string;
-  status: "pending" | "running" | "complete" | "failed";
-};
-
-type Attachment = { name: string; type: string };
-
-type ChatMessage = {
-  id: string;
-  role: "user" | "assistant" | "system" | "tool";
-  content: string;
-  createdAt: string;
-  state: "idle" | "sending" | "streaming" | "failed";
-  citations?: string[];
-  attachments?: Attachment[];
-  toolCalls?: ToolCall[];
-};
-
-type ChatSession = {
-  id: string;
-  title: string;
-  mode: string;
-  createdAt: string;
-  updatedAt: string;
-  messages: ChatMessage[];
-};
-
-type SessionExportFormat = "md" | "txt";
+import { useToast } from "@/components/toast";
+import { formatDate, formatTime, saveExport } from "@/lib/chat";
+import type {
+  ChatMessage,
+  ChatSession,
+  SessionExportFormat,
+  ToolCall,
+  ToolCallKind,
+} from "@/types/chat";
 
 const mockStreamingChunks = ["Thinking", "Thinking.", "Thinking..", "Thinking..."];
 
@@ -111,14 +86,6 @@ function uuid() {
   return Math.random().toString(36).slice(2);
 }
 
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString([], { month: "short", day: "numeric" });
-}
-
 async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${env.NEXT_PUBLIC_API_URL}${path}`;
   const response = await fetch(url, {
@@ -141,40 +108,8 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
-function buildExportPayload(session: ChatSession, format: SessionExportFormat) {
-  const lines: string[] = [];
-  lines.push(`# ${session.title}`);
-  lines.push(`Mode: ${session.mode}`);
-  lines.push("");
-  session.messages.forEach((message) => {
-    const prefix = message.role === "assistant" ? "Assistant" : "User";
-    const content = format === "md" ? message.content : message.content.replace(/\n+/g, " ");
-    lines.push(`${prefix} (${formatTime(message.createdAt)}):`);
-    lines.push(content);
-    if (message.citations?.length) {
-      lines.push(`Citations: ${message.citations.join(", ")}`);
-    }
-    if (message.attachments?.length) {
-      lines.push(`Attachments: ${message.attachments.map((a) => a.name).join(", ")}`);
-    }
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function saveExport(session: ChatSession, format: SessionExportFormat) {
-  const payload = buildExportPayload(session, format);
-  const blob = new Blob([payload], { type: "text/plain" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `${session.title || "chat-session"}.${format}`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
 export default function Home() {
+  const { pushToast } = useToast();
   const [sessions, setSessions] = useState<ChatSession[]>(fallbackSessions);
   const [selectedSessionId, setSelectedSessionId] = useState<string>(fallbackSessions[0]?.id ?? "");
   const [conversationSearch, setConversationSearch] = useState("");
@@ -184,6 +119,8 @@ export default function Home() {
   const [sending, setSending] = useState(false);
   const [pendingToolType, setPendingToolType] = useState<ToolCallKind | null>(null);
   const streamingTimers = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+  const notifyError = (title: string, description?: string) =>
+    pushToast({ title, description, variant: "error" });
 
   const selectedSession = useMemo(
     () => sessions.find((session) => session.id === selectedSessionId),
@@ -211,6 +148,7 @@ export default function Home() {
       }
     } catch (error) {
       console.warn("Falling back to mock sessions", error);
+      notifyError("Unable to load conversations", "Showing demo workspace data instead.");
     } finally {
       setLoadingSessions(false);
     }
@@ -248,6 +186,7 @@ export default function Home() {
       setSelectedSessionId(created.id);
     } catch (error) {
       console.warn("Session creation fell back to optimistic state", error);
+      notifyError("Saved locally", "Could not persist the new session to the API.");
     }
   }
 
@@ -263,6 +202,7 @@ export default function Home() {
       });
     } catch (error) {
       console.warn("Rename failed, kept optimistic value", error);
+      notifyError("Rename failed", "Kept the local title after the API error.");
     }
   }
 
@@ -328,10 +268,10 @@ export default function Home() {
       clearInterval(timer);
       delete streamingTimers.current[assistantMessage.id];
 
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === selectedSession.id
-            ? {
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === selectedSession.id
+          ? {
                 ...session,
                 messages: session.messages.map((message) => {
                   if (message.id === userMessage.id) {
@@ -406,11 +346,17 @@ export default function Home() {
     void apiRequest(`/chat/messages/${messageId}/feedback`, {
       method: "POST",
       body: JSON.stringify({ value }),
-    }).catch((error) => console.warn("Feedback failed", error));
+    }).catch((error) => {
+      console.warn("Feedback failed", error);
+      notifyError("Feedback failed", "We couldn't save your rating to the API.");
+    });
   }
 
   function handleExport(format: SessionExportFormat) {
-    if (!selectedSession) return;
+    if (!selectedSession) {
+      notifyError("No conversation selected", "Choose a chat before exporting it.");
+      return;
+    }
     saveExport(selectedSession, format);
   }
 

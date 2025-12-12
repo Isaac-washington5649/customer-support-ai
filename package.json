@@ -9,14 +9,26 @@
     "start:web": "npm run start --workspace web",
     "dev:api": "npm run dev --workspace api",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run --workspace vitest.workspace.ts",
+    "test:watch": "vitest watch --workspace vitest.workspace.ts",
+    "test:e2e": "npm run test:e2e --workspace web"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/coverage-c8": "^3.0.2",
+    "@playwright/test": "^1.49.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
+    "eslint-config-prettier": "^9.1.0",
+    "jsdom": "^26.0.0",
     "prettier": "^3",
     "typescript": "^5",
-    "typescript-eslint": "^8"
+    "typescript-eslint": "^8",
+    "vitest": "^3.0.2"
   }
 }

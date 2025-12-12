@@ -17,6 +17,7 @@ import {
   type WorkspaceObjectLocator,
 } from "@customer-support-ai/ingestion";
 import { EmbeddingCacheService, type EmbeddingProvider } from "./embeddings/cache";
+import { logger } from "./logging";
 
 export interface UploadContext {
   workspaceSlug: string;
@@ -264,8 +265,7 @@ async function validateUpload(deps: UploadDependencies, buffer: Buffer, context:
 
 async function logAudit(deps: UploadDependencies, event: UploadAuditEvent) {
   await deps.audit?.(event);
-  // eslint-disable-next-line no-console
-  console.info("[upload-audit]", JSON.stringify(event));
+  logger.event("upload_audit", event);
 }
 
 async function scanBufferForThreats(buffer: Buffer) {
@@ -610,7 +610,16 @@ export function configureUploadDependencies(env: {
     prisma: env.prisma,
     bucketPrefix: env.S3_BUCKET_PREFIX,
     region: env.S3_REGION,
-    audit: env.audit,
+    audit:
+      env.audit ??
+      ((event) =>
+        logger.info("ingestion_event", {
+          kind: event.kind,
+          workspace: event.workspace,
+          filename: event.filename,
+          result: event.result,
+          durationMs: event.durationMs,
+        })),
     scan: env.scan ?? ((buffer) => scanBufferForThreats(buffer)),
     policies: env.policies,
     rateLimiter: env.rateLimiter,

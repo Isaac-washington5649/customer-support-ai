@@ -5,6 +5,8 @@ import {
   ensureWorkspaceBucket,
   workspaceBucketName,
 } from "@customer-support-ai/ingestion";
+import { logger } from "./logging";
+import { shutdownTelemetry, startTelemetry } from "./telemetry";
 
 const s3 = createS3Client({
   accessKeyId: env.S3_ACCESS_KEY_ID,
@@ -14,6 +16,7 @@ const s3 = createS3Client({
 });
 
 async function bootstrap() {
+  await startTelemetry();
   await prisma.$connect();
 
   const defaultBucket = workspaceBucketName(env.S3_BUCKET_PREFIX, "bootstrap");
@@ -23,12 +26,18 @@ async function bootstrap() {
     region: env.S3_REGION,
   });
 
-  console.info(
-    `[api] using database at ${env.DATABASE_URL} and bucket ${defaultBucket} (env: ${env.NODE_ENV})`,
-  );
+  logger.info("API bootstrap complete", {
+    database: env.DATABASE_URL,
+    bucket: defaultBucket,
+    environment: env.NODE_ENV,
+  });
 }
 
 void bootstrap().catch((error) => {
-  console.error("API bootstrap failed", error);
+  logger.error("API bootstrap failed", { error: (error as Error).message });
+  void shutdownTelemetry();
   process.exit(1);
 });
+
+process.on("SIGTERM", () => void shutdownTelemetry());
+process.on("SIGINT", () => void shutdownTelemetry());
