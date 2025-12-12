@@ -1,6 +1,6 @@
 import type { ResolvedAgentProfile } from "./agents";
 import type { AgentRegistry } from "./agents";
-import type { RetrievedContext } from "./context";
+import type { RetrievedContext, ToolCallPreparation } from "./context";
 import type { AgentRoutingRequest, ChatMessage, RoutedAgentPrompt } from "./messages";
 
 const buildGuardrailMessage = (profile: ResolvedAgentProfile): ChatMessage => ({
@@ -86,6 +86,21 @@ const buildContextMessages = (contexts?: RetrievedContext[]): ChatMessage[] => {
   });
 };
 
+const selectToolsForProfile = (
+  tools: ToolCallPreparation[] | undefined,
+  profile: ResolvedAgentProfile,
+): ToolCallPreparation[] | undefined => {
+  const allowList = new Set(profile.enabledTools ?? profile.defaultTools ?? []);
+
+  if (!allowList.size) {
+    return tools;
+  }
+
+  const filtered = tools?.filter((tool) => allowList.has(tool.name)) ?? [];
+
+  return filtered.length ? filtered : undefined;
+};
+
 export class AgentRouter {
   private readonly registry: AgentRegistry;
 
@@ -112,7 +127,11 @@ export class AgentRouter {
 
     return {
       profile,
-      prompt: { systemMessages, userMessages, tools: request.context?.tools },
+      prompt: {
+        systemMessages,
+        userMessages,
+        tools: selectToolsForProfile(request.context?.tools, profile),
+      },
     };
   }
 }
