@@ -1,5 +1,7 @@
 "use client";
+/* eslint-disable no-unused-vars */
 
+import type React from "react";
 import { useMemo, useState } from "react";
 import { Button } from "@customer-support-ai/ui";
 
@@ -112,7 +114,13 @@ function findPath(nodes: FileNode[], id: string): FileNode[] {
   return path;
 }
 
-function Breadcrumbs({ currentId, onNavigate }: { currentId: string; onNavigate: (id: string) => void }) {
+function Breadcrumbs({
+  currentId,
+  onNavigate,
+  }: {
+    currentId: string;
+    onNavigate: (_id: string) => void;
+  }) {
   const path = useMemo(() => findPath(flattenFiles(sampleFiles), currentId), [currentId]);
   return (
     <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
@@ -138,7 +146,13 @@ function StatusBadge({ status }: { status: FileStatus }) {
   return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${styles[status]}`}>{status}</span>;
 }
 
-function FileGrid({ files, onSelect }: { files: FileNode[]; onSelect: (id: string) => void }) {
+function FileGrid({
+  files,
+  onSelect,
+}: {
+  files: FileNode[];
+  onSelect: (_id: string) => void;
+}) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
       {files.map((file) => (
@@ -166,7 +180,15 @@ function FileGrid({ files, onSelect }: { files: FileNode[]; onSelect: (id: strin
   );
 }
 
-function FileTable({ files, onToggle, selectedIds }: { files: FileNode[]; onToggle: (id: string) => void; selectedIds: Set<string> }) {
+function FileTable({
+  files,
+  onToggle,
+  selectedIds,
+}: {
+  files: FileNode[];
+  onToggle: (_id: string) => void;
+  selectedIds: Set<string>;
+}) {
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
       <table className="min-w-full divide-y divide-gray-200">

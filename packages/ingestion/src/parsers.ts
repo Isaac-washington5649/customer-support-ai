@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { JSDOM } from "jsdom";
 
 import { type ChunkingOptions, type FileMetadata, type ParsedDocument } from "./types";
@@ -49,22 +50,30 @@ export async function parseToText(buffer: Buffer, metadata: FileMetadata): Promi
 }
 
 async function parsePdf(buffer: Buffer): Promise<string> {
-  const pdf = await safeImport(() => import("pdf-parse"));
-  if (pdf && "default" in pdf) {
-    const result = await (pdf as unknown as { default: (b: Buffer) => Promise<{ text: string }> }).default(buffer);
-    return result.text;
-  }
+    const pdf = await safeImport(() => import("pdf-parse"));
+    if (pdf && "default" in pdf) {
+      const result = await (
+        pdf as unknown as {
+          default: (_buffer: Buffer) => Promise<{ text: string }>;
+        }
+      ).default(buffer);
+      return result.text;
+    }
   return "Unable to parse PDF in this environment.";
 }
 
 async function parseDocx(buffer: Buffer): Promise<string> {
-  const mammoth = await safeImport(() => import("mammoth"));
-  if (mammoth && "extractRawText" in mammoth) {
-    const result = await (mammoth as unknown as { extractRawText: (options: { buffer: Buffer }) => Promise<{ value: string }> }).extractRawText({
-      buffer,
-    });
-    return result.value;
-  }
+    const mammoth = await safeImport(() => import("mammoth"));
+    if (mammoth && "extractRawText" in mammoth) {
+      const result = await (
+        mammoth as unknown as {
+          extractRawText: (_options: { buffer: Buffer }) => Promise<{ value: string }>;
+        }
+      ).extractRawText({
+        buffer,
+      });
+      return result.value;
+    }
   return "Unable to parse DOCX in this environment.";
 }
 

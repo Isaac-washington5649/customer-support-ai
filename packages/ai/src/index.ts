@@ -24,3 +24,4 @@ export * from "./context";
 export * from "./messages";
 export * from "./openai-client";
 export * from "./router";
+export * from "./evaluation/harness";

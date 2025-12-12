@@ -132,6 +132,7 @@ model Chunk {
   content    String
   tokenCount Int?
   embedding  Unsupported("vector")
+  searchVector Unsupported("tsvector")?
   metadata   Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

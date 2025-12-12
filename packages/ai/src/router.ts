@@ -23,18 +23,67 @@ const buildAdditionalInstructions = (profile: ResolvedAgentProfile): ChatMessage
       ]
     : [];
 
+const describeMetadata = (context: RetrievedContext): string | undefined => {
+  const metadataParts: string[] = [];
+
+  if (context.rank !== undefined) {
+    metadataParts.push(`rank=${context.rank}`);
+  }
+
+  if (context.score !== undefined) {
+    metadataParts.push(`score=${context.score.toFixed(3)}`);
+  }
+
+  if (context.metadata) {
+    metadataParts.push(
+      ...Object.entries(context.metadata).map(([key, value]) =>
+        Array.isArray(value) ? `${key}=${value.join(", ")}` : `${key}=${value}`,
+      ),
+    );
+  }
+
+  return metadataParts.length ? `Metadata: ${metadataParts.join(" | ")}` : undefined;
+};
+
+const buildCitationLine = (context: RetrievedContext): string | undefined => {
+  if (!context.citations?.length) {
+    return undefined;
+  }
+
+  const formatted = context.citations.map((citation, index) => {
+    const label = citation.title ?? citation.id;
+    return `[${index + 1}] ${label}`;
+  });
+
+  return `Citations: ${formatted.join(" | ")}`;
+};
+
 const buildContextMessages = (contexts?: RetrievedContext[]): ChatMessage[] => {
   if (!contexts?.length) {
     return [];
   }
 
-  return contexts.map((context, index) => ({
-    role: "system",
-    content: `Context ${index + 1}: ${context.content}`,
-    context: {
-      retrievedContexts: [context],
-    },
-  }));
+  return contexts.map((context, index) => {
+    const metadataLine = describeMetadata(context);
+    const citationLine = buildCitationLine(context);
+    const lines = [`Context ${index + 1}: ${context.content}`];
+
+    if (metadataLine) {
+      lines.push(metadataLine);
+    }
+
+    if (citationLine) {
+      lines.push(citationLine);
+    }
+
+    return {
+      role: "system",
+      content: lines.join("\n"),
+      context: {
+        retrievedContexts: [context],
+      },
+    } satisfies ChatMessage;
+  });
 };
 
 export class AgentRouter {
