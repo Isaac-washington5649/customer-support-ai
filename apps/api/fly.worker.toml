@@ -1,0 +1,10 @@
+app = "${FLY_WORKER_APP}"
+primary_region = "iad"
+kill_signal = "SIGINT"
+kill_timeout = 10
+
+[build]
+  dockerfile = "apps/api/Dockerfile"
+
+[processes]
+  worker = "npm run worker --workspace api"

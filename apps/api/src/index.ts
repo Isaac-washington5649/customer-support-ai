@@ -1,3 +1,4 @@
+import http from "node:http";
 import { env } from "./env";
 import { prisma } from "./db/client";
 import {
@@ -33,11 +34,32 @@ async function bootstrap() {
   });
 }
 
-void bootstrap().catch((error) => {
-  logger.error("API bootstrap failed", { error: (error as Error).message });
-  void shutdownTelemetry();
-  process.exit(1);
-});
+let server: http.Server | undefined;
 
-process.on("SIGTERM", () => void shutdownTelemetry());
-process.on("SIGINT", () => void shutdownTelemetry());
+void bootstrap()
+  .then(() => {
+    server = http.createServer((_, res) => {
+      res.statusCode = 200;
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ status: "ok" }));
+    });
+
+    server.listen(env.PORT, () => {
+      logger.info("API health server started", { port: env.PORT });
+    });
+  })
+  .catch((error) => {
+    logger.error("API bootstrap failed", { error: (error as Error).message });
+    void shutdownTelemetry();
+    process.exit(1);
+  });
+
+const shutdown = () => {
+  if (server) {
+    server.close();
+  }
+  void shutdownTelemetry();
+};
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
