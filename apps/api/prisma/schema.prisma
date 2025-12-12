@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(schema: "public")]
+}
+
+enum WorkspacePlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum FileStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum DocumentStatus {
+  PENDING
+  EMBEDDING
+  READY
+  ARCHIVED
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+  tool
+}
+
+enum QuotaDimension {
+  REQUESTS
+  TOKENS
+  STORAGE
+}
+
+model User {
+  id          String             @id @default(cuid())
+  email       String             @unique
+  name        String?
+  image       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  memberships WorkspaceMember[]
+  chatSessions ChatSession[]
+  files       File[]
+  messages    Message[]
+}
+
+model Workspace {
+  id          String             @id @default(cuid())
+  name        String
+  slug        String             @unique
+  plan        WorkspacePlan      @default(FREE)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  members     WorkspaceMember[]
+  files       File[]
+  documents   Document[]
+  chatSessions ChatSession[]
+  folders     Folder[]
+  tags        Tag[]
+  quotas      WorkspaceQuota[]
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        WorkspaceRole @default(MEMBER)
+  createdAt   DateTime      @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([userId, workspaceId])
+}
+
+model File {
+  id          String      @id @default(cuid())
+  workspaceId String
+  uploaderId  String?
+  bucket      String
+  objectKey   String
+  size        Int
+  mimeType    String?
+  checksum    String?
+  status      FileStatus  @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  uploader  User?     @relation(fields: [uploaderId], references: [id])
+  document  Document? @relation(fields: [id], references: [sourceFileId])
+}
+
+model Document {
+  id            String          @id @default(cuid())
+  workspaceId   String
+  sourceFileId  String?
+  title         String
+  status        DocumentStatus  @default(PENDING)
+  tokens        Int?
+  version       Int             @default(1)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  sourceFile File?    @relation(fields: [sourceFileId], references: [id])
+  chunks     Chunk[]
+  chatSessions ChatSession[]
+  folderLinks DocumentFolder[]
+  tagLinks   DocumentTag[]
+}
+
+model Chunk {
+  id         String   @id @default(cuid())
+  documentId String
+  content    String
+  tokenCount Int?
+  embedding  Unsupported("vector")
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id])
+
+  @@index([documentId])
+}
+
+model ChatSession {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String?
+  documentId  String?
+  title       String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+  document  Document? @relation(fields: [documentId], references: [id])
+  messages  Message[]
+}
+
+model Message {
+  id            String      @id @default(cuid())
+  chatSessionId String
+  userId        String?
+  role          MessageRole
+  content       String
+  metadata      Json?
+  createdAt     DateTime    @default(now())
+
+  chatSession ChatSession @relation(fields: [chatSessionId], references: [id])
+  user        User?       @relation(fields: [userId], references: [id])
+}
+
+model Folder {
+  id          String     @id @default(cuid())
+  workspaceId String
+  name        String
+  parentId    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  parent    Folder?   @relation("SubFolders", fields: [parentId], references: [id])
+  subfolders Folder[] @relation("SubFolders")
+  documents DocumentFolder[]
+}
+
+model DocumentFolder {
+  id         String   @id @default(cuid())
+  documentId String
+  folderId   String
+
+  document Document @relation(fields: [documentId], references: [id])
+  folder   Folder   @relation(fields: [folderId], references: [id])
+
+  @@unique([documentId, folderId])
+}
+
+model Tag {
+  id          String   @id @default(cuid())
+  workspaceId String
+  label       String
+  createdAt   DateTime @default(now())
+
+  workspace Workspace    @relation(fields: [workspaceId], references: [id])
+  documents DocumentTag[]
+
+  @@unique([workspaceId, label])
+}
+
+model DocumentTag {
+  id         String @id @default(cuid())
+  documentId String
+  tagId      String
+
+  document Document @relation(fields: [documentId], references: [id])
+  tag      Tag      @relation(fields: [tagId], references: [id])
+
+  @@unique([documentId, tagId])
+}
+
+model WorkspaceQuota {
+  id          String         @id @default(cuid())
+  workspaceId String
+  dimension   QuotaDimension
+  limit       Int
+  used        Int            @default(0)
+  resetAt     DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([workspaceId, dimension])
+}
