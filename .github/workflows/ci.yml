@@ -14,10 +14,19 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
+      - name: Prepare lockfile (if missing)
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
       - name: Install dependencies
-        run: npm install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck
+        run: npm run typecheck
       - name: Lint
         run: npm run lint
+      - name: Build
+        run: npm run build
       - name: Unit tests
         run: npm run test
       - name: Playwright install

@@ -8,6 +8,7 @@
     "start": "node dist/index.js",
     "worker": "tsx src/workers/worker.ts",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
     "test": "vitest run",
     "prisma:generate": "prisma generate --schema ./prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema ./prisma/schema.prisma --name init",

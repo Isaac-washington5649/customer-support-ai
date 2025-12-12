@@ -57,3 +57,8 @@ The ingestion package provides S3 helpers to keep tenant buckets consistent:
 - Bucket names follow `<prefix>-<workspace>` using `workspaceBucketName`.
 - `ensureWorkspaceBucket` creates the bucket (if missing) and applies the desired ACL.
 - Configure endpoint/region/credentials via the API env vars (`S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET_PREFIX`).
+
+## Deployment
+- Deployment analysis and decisions: [`docs/deployment/ANALYSIS.md`](docs/deployment/ANALYSIS.md) and [`docs/deployment/DECISIONS.md`](docs/deployment/DECISIONS.md)
+- Step-by-step rollout guide: [`docs/deployment/DEPLOYMENT.md`](docs/deployment/DEPLOYMENT.md)
+- Secrets and rollback procedures: [`docs/deployment/SECRETS.md`](docs/deployment/SECRETS.md) and [`docs/deployment/ROLLBACK.md`](docs/deployment/ROLLBACK.md)
