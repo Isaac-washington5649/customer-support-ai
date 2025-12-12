@@ -1,6 +1,7 @@
 import {
   CreateBucketCommand,
   PutBucketAclCommand,
+  DeleteObjectCommand,
   S3Client,
   type CreateBucketCommandInput,
   type PutBucketAclCommandInput,
@@ -65,4 +66,16 @@ export async function ensureWorkspaceBucket(
   };
 
   await client.send(new PutBucketAclCommand(aclInput));
+}
+
+export async function deleteWorkspaceObject(
+  client: S3Client,
+  locator: { bucket: string; objectKey: string },
+): Promise<void> {
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: locator.bucket,
+      Key: locator.objectKey,
+    }),
+  );
 }

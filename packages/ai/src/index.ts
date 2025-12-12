@@ -25,3 +25,4 @@ export * from "./messages";
 export * from "./openai-client";
 export * from "./router";
 export * from "./evaluation/harness";
+export * from "./models";

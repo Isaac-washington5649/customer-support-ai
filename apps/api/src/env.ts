@@ -13,6 +13,10 @@ export const env = createEnv({
     S3_ACCESS_KEY_ID: z.string().min(1),
     S3_SECRET_ACCESS_KEY: z.string().min(1),
     S3_BUCKET_PREFIX: z.string().min(3),
+    REDIS_URL: z.string().url().default("redis://localhost:6379"),
+    QUEUE_PREFIX: z.string().min(1).default("csa"),
+    INGESTION_CONCURRENCY: z.coerce.number().int().positive().default(3),
+    DELETION_CONCURRENCY: z.coerce.number().int().positive().default(2),
   },
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
@@ -24,6 +28,10 @@ export const env = createEnv({
     S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
     S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
     S3_BUCKET_PREFIX: process.env.S3_BUCKET_PREFIX,
+    REDIS_URL: process.env.REDIS_URL,
+    QUEUE_PREFIX: process.env.QUEUE_PREFIX,
+    INGESTION_CONCURRENCY: process.env.INGESTION_CONCURRENCY,
+    DELETION_CONCURRENCY: process.env.DELETION_CONCURRENCY,
   },
   emptyStringAsUndefined: true,
 });
